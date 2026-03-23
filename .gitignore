@@ -1,0 +1,39 @@
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Xcode
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+Packages/
+
+# Xcode derived data
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Firebase
+firebase-debug.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Flutter
+phantom-flutter/.dart_tool/
+phantom-flutter/.packages
+phantom-flutter/build/
+phantom-flutter/pubspec.lock
+
+# Android
+phantom-android/build/
+phantom-android/.gradle/
+phantom-android/local.properties

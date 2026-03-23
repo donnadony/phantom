@@ -1,0 +1,92 @@
+import Foundation
+import SwiftUI
+
+public enum Phantom {
+
+    // MARK: - Theme
+
+    public static var theme: PhantomTheme = .kodivex
+
+    public static func setTheme(_ theme: PhantomTheme) {
+        self.theme = theme
+    }
+
+    // MARK: - App Logging
+
+    public static func log(_ level: PhantomLogLevel = .info, _ message: String, tag: String? = nil) {
+        PhantomLogger.shared.log(level, message, tag: tag)
+    }
+
+    // MARK: - Network Logging
+
+    public static func logRequest(_ urlRequest: URLRequest) {
+        PhantomNetworkLogger.shared.logRequest(urlRequest)
+    }
+
+    public static func logResponse(for urlRequest: URLRequest, body: Data?) {
+        PhantomNetworkLogger.shared.logResponse(for: urlRequest, body: body)
+    }
+
+    public static func logResponse(for urlRequest: URLRequest, errorMessage: String) {
+        PhantomNetworkLogger.shared.logResponse(for: urlRequest, errorMessage: errorMessage)
+    }
+
+    public static func logResponse(
+        url: URL?,
+        methodType: String,
+        headers: String,
+        body: String,
+        statusCode: Int?
+    ) {
+        PhantomNetworkLogger.shared.logResponse(
+            url: url,
+            methodType: methodType,
+            headers: headers,
+            body: body,
+            statusCode: statusCode
+        )
+    }
+
+    public static func updateResponseMetadata(url: URL?, headers: String, statusCode: Int?) {
+        PhantomNetworkLogger.shared.updateResponseMetadata(url: url, headers: headers, statusCode: statusCode)
+    }
+
+    public static func logExternalEntry(_ jsonString: String, sourcePrefix: String = "[External]") {
+        PhantomNetworkLogger.shared.logExternalEntry(jsonString, sourcePrefix: sourcePrefix)
+    }
+
+    // MARK: - Mock Interceptor
+
+    public static func mockResponse(for request: URLRequest) -> (Data, HTTPURLResponse)? {
+        PhantomMockInterceptor.shared.mockResponse(for: request)
+    }
+
+    // MARK: - Configuration
+
+    public static func registerConfig(
+        _ label: String,
+        key: String,
+        defaultValue: String,
+        type: PhantomConfigType = .text,
+        options: [String] = []
+    ) {
+        PhantomConfig.shared.register(label, key: key, defaultValue: defaultValue, type: type, options: options)
+    }
+
+    public static func config(_ key: String) -> String? {
+        PhantomConfig.shared.effectiveValue(for: key)
+    }
+
+    public static func setConfig(_ key: String, value: String?) {
+        PhantomConfig.shared.setValue(value, for: key)
+    }
+
+    // MARK: - Presentation
+
+    #if DEBUG
+    public static func view() -> some View {
+        PhantomView()
+            .environment(\.phantomTheme, theme)
+    }
+    #endif
+}
