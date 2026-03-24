@@ -80,4 +80,51 @@ public final class PhantomMockInterceptor: ObservableObject {
               let decoded = try? JSONDecoder().decode([PhantomMockRule].self, from: data) else { return }
         rules = decoded
     }
+
+    // MARK: - Import
+
+    @discardableResult
+    public func loadMocks(from fileName: String, in bundle: Bundle = .main) -> Bool {
+        guard let url = bundle.url(forResource: fileName, withExtension: "json") else { return false }
+        return loadMocks(from: url)
+    }
+
+    @discardableResult
+    public func loadMocks(from url: URL) -> Bool {
+        guard let data = try? Data(contentsOf: url) else { return false }
+        return loadMocks(from: data)
+    }
+
+    @discardableResult
+    public func loadMocks(from data: Data) -> Bool {
+        if let collection = try? JSONDecoder().decode(PhantomMockCollection.self, from: data) {
+            mergeRules(collection.rules)
+            return true
+        }
+        if let rawRules = try? JSONDecoder().decode([PhantomMockRule].self, from: data) {
+            mergeRules(rawRules)
+            return true
+        }
+        return false
+    }
+
+    private func mergeRules(_ newRules: [PhantomMockRule]) {
+        for newRule in newRules {
+            if let index = rules.firstIndex(where: { $0.urlPattern == newRule.urlPattern && $0.httpMethod == newRule.httpMethod }) {
+                rules[index] = newRule
+            } else {
+                rules.append(newRule)
+            }
+        }
+        save()
+    }
+
+    // MARK: - Export
+
+    public func exportCollection(name: String = "Phantom Mocks", description: String = "") -> Data? {
+        let collection = PhantomMockCollection(name: name, description: description, rules: rules)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        return try? encoder.encode(collection)
+    }
 }

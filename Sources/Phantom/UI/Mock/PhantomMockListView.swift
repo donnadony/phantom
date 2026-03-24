@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct PhantomMockListView: View {
 
@@ -13,14 +14,20 @@ struct PhantomMockListView: View {
             } else {
                 emptyState()
             }
+            if let toast = viewModel.toastMessage {
+                toastView(toast)
+            }
         }
         .navigationTitle("Mock Services")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { viewModel.showAddSheet = true }) {
-                    Image(systemName: "plus")
-                        .foregroundColor(theme.primary)
+                HStack(spacing: 12) {
+                    importExportMenu()
+                    Button(action: { viewModel.showAddSheet = true }) {
+                        Image(systemName: "plus")
+                            .foregroundColor(theme.primary)
+                    }
                 }
             }
         }
@@ -36,6 +43,33 @@ struct PhantomMockListView: View {
             })
             .environment(\.phantomTheme, theme)
         }
+        .sheet(isPresented: $viewModel.showImportPicker) {
+            PhantomDocumentPicker { url in
+                viewModel.importMocks(from: url)
+            }
+        }
+        .sheet(isPresented: $viewModel.showExportShare) {
+            if let data = viewModel.exportData {
+                PhantomShareSheet(data: data, fileName: "phantom_mocks.json")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func importExportMenu() -> some View {
+        Menu {
+            Button(action: { viewModel.showImportPicker = true }) {
+                Label("Import from file", systemImage: "square.and.arrow.down")
+            }
+            if viewModel.hasRules {
+                Button(action: { viewModel.exportMocks() }) {
+                    Label("Export all mocks", systemImage: "square.and.arrow.up")
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .foregroundColor(theme.primary)
+        }
     }
 
     @ViewBuilder
@@ -47,7 +81,7 @@ struct PhantomMockListView: View {
             Text("No mock rules")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(theme.onBackground)
-            Text("Tap + to create a rule or use \"Mock this\" from the Network view.")
+            Text("Tap + to create a rule, import from a JSON file, or use \"Mock this\" from the Network view.")
                 .font(.system(size: 14))
                 .foregroundStyle(theme.onBackgroundVariant)
                 .multilineTextAlignment(.center)
@@ -112,4 +146,69 @@ struct PhantomMockListView: View {
         }
         .padding(.vertical, 4)
     }
+
+    @ViewBuilder
+    private func toastView(_ message: String) -> some View {
+        VStack {
+            Spacer()
+            Text(message)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(theme.onPrimary)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(RoundedRectangle(cornerRadius: 10).fill(theme.primary))
+                .padding(.bottom, 32)
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut, value: message)
+    }
+}
+
+// MARK: - Document Picker
+
+struct PhantomDocumentPicker: UIViewControllerRepresentable {
+
+    let onPick: (URL) -> Void
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.json])
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onPick: onPick)
+    }
+
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let onPick: (URL) -> Void
+
+        init(onPick: @escaping (URL) -> Void) {
+            self.onPick = onPick
+        }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            onPick(url)
+        }
+    }
+}
+
+// MARK: - Share Sheet
+
+struct PhantomShareSheet: UIViewControllerRepresentable {
+
+    let data: Data
+    let fileName: String
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        try? data.write(to: tempURL)
+        return UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

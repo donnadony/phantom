@@ -6,6 +6,10 @@ final class PhantomMockListViewModel: ObservableObject {
 
     @Published var editingRule: PhantomMockRule?
     @Published var showAddSheet = false
+    @Published var showImportPicker = false
+    @Published var showExportShare = false
+    @Published var exportData: Data?
+    @Published var toastMessage: String?
 
     private let interceptor = PhantomMockInterceptor.shared
     private var cancellables = Set<AnyCancellable>()
@@ -42,6 +46,23 @@ final class PhantomMockListViewModel: ObservableObject {
         interceptor.toggleRule(id: id)
     }
 
+    func importMocks(from url: URL) {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        if interceptor.loadMocks(from: url) {
+            showToast("\(interceptor.rules.count) rules loaded")
+        } else {
+            showToast("Invalid mock file")
+        }
+    }
+
+    func exportMocks() {
+        exportData = interceptor.exportCollection()
+        if exportData != nil {
+            showExportShare = true
+        }
+    }
+
     func methodColor(_ method: String, theme: PhantomTheme) -> Color {
         switch method {
         case "GET": return theme.httpGet
@@ -57,5 +78,12 @@ final class PhantomMockListViewModel: ObservableObject {
         if (400..<500).contains(code) { return theme.warning }
         if code >= 500 { return theme.error }
         return theme.onBackgroundVariant
+    }
+
+    private func showToast(_ message: String) {
+        toastMessage = message
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            self?.toastMessage = nil
+        }
     }
 }

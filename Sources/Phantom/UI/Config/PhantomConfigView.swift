@@ -25,6 +25,7 @@ struct PhantomConfigView: View {
                 }
             }
         }
+        .onAppear { viewModel.initializeGroupSelection() }
     }
 
     @ViewBuilder
@@ -46,17 +47,73 @@ struct PhantomConfigView: View {
 
     @ViewBuilder
     private func configList() -> some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(viewModel.entries) { entry in
-                    configRow(entry)
-                        .padding(16)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(theme.surface))
+        VStack(spacing: 0) {
+            if viewModel.hasMultipleGroups {
+                groupFilter()
+            }
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(viewModel.groupedEntries, id: \.group) { section in
+                        if viewModel.hasMultipleGroups && viewModel.selectedGroup == nil {
+                            groupHeader(section.group)
+                        }
+                        ForEach(section.entries) { entry in
+                            configRow(entry)
+                                .padding(16)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(theme.surface))
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func groupFilter() -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                groupChip("All", isSelected: viewModel.selectedGroup == nil) {
+                    viewModel.selectGroup(nil)
+                }
+                ForEach(viewModel.groups, id: \.self) { group in
+                    groupChip(group, isSelected: viewModel.selectedGroup == group) {
+                        viewModel.selectGroup(group)
+                    }
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
         }
+    }
+
+    @ViewBuilder
+    private func groupChip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: isSelected ? .bold : .regular))
+                .foregroundStyle(isSelected ? theme.onPrimary : theme.onBackground)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(isSelected ? theme.primary : theme.inputBackground)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func groupHeader(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(theme.onBackgroundVariant)
+                .textCase(.uppercase)
+            Spacer()
+        }
+        .padding(.top, 8)
     }
 
     @ViewBuilder

@@ -3,6 +3,8 @@ import Combine
 
 final class PhantomConfigViewModel: ObservableObject {
 
+    @Published var selectedGroup: String?
+
     private let config = PhantomConfig.shared
     private var cancellables = Set<AnyCancellable>()
 
@@ -14,10 +16,44 @@ final class PhantomConfigViewModel: ObservableObject {
         !config.entries.isEmpty
     }
 
+    var groups: [String] {
+        config.groups
+    }
+
+    var hasMultipleGroups: Bool {
+        config.groups.count > 1
+    }
+
+    var filteredEntries: [PhantomConfigEntry] {
+        guard let selectedGroup else { return config.entries }
+        return config.entries(for: selectedGroup)
+    }
+
+    var groupedEntries: [(group: String, entries: [PhantomConfigEntry])] {
+        let entriesToShow = filteredEntries
+        let groupOrder = groups
+        var result: [(group: String, entries: [PhantomConfigEntry])] = []
+        for group in groupOrder {
+            let groupEntries = entriesToShow.filter { $0.group == group }
+            guard !groupEntries.isEmpty else { continue }
+            result.append((group: group, entries: groupEntries))
+        }
+        return result
+    }
+
     init() {
         config.objectWillChange
             .sink { [weak self] in self?.objectWillChange.send() }
             .store(in: &cancellables)
+    }
+
+    func initializeGroupSelection() {
+        guard selectedGroup == nil, hasMultipleGroups else { return }
+        selectedGroup = groups.first
+    }
+
+    func selectGroup(_ group: String?) {
+        selectedGroup = group
     }
 
     func effectiveValue(for key: String, defaultValue: String) -> String {

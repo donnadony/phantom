@@ -61,6 +61,27 @@ public enum Phantom {
         PhantomMockInterceptor.shared.mockResponse(for: request)
     }
 
+    // MARK: - Mock Import / Export
+
+    @discardableResult
+    public static func loadMocks(from fileName: String, in bundle: Bundle = .main) -> Bool {
+        PhantomMockInterceptor.shared.loadMocks(from: fileName, in: bundle)
+    }
+
+    @discardableResult
+    public static func loadMocks(from url: URL) -> Bool {
+        PhantomMockInterceptor.shared.loadMocks(from: url)
+    }
+
+    @discardableResult
+    public static func loadMocks(from data: Data) -> Bool {
+        PhantomMockInterceptor.shared.loadMocks(from: data)
+    }
+
+    public static func exportMocks(name: String = "Phantom Mocks", description: String = "") -> Data? {
+        PhantomMockInterceptor.shared.exportCollection(name: name, description: description)
+    }
+
     // MARK: - Configuration
 
     public static func registerConfig(
@@ -68,9 +89,10 @@ public enum Phantom {
         key: String,
         defaultValue: String,
         type: PhantomConfigType = .text,
-        options: [String] = []
+        options: [String] = [],
+        group: String = "General"
     ) {
-        PhantomConfig.shared.register(label, key: key, defaultValue: defaultValue, type: type, options: options)
+        PhantomConfig.shared.register(label, key: key, defaultValue: defaultValue, type: type, options: options, group: group)
     }
 
     public static func config(_ key: String) -> String? {

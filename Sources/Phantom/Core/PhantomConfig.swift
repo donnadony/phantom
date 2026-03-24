@@ -22,7 +22,8 @@ public final class PhantomConfig: ObservableObject {
         key: String,
         defaultValue: String,
         type: PhantomConfigType = .text,
-        options: [String] = []
+        options: [String] = [],
+        group: String = "General"
     ) {
         guard !entries.contains(where: { $0.key == key }) else { return }
         let entry = PhantomConfigEntry(
@@ -30,9 +31,18 @@ public final class PhantomConfig: ObservableObject {
             key: key,
             defaultValue: defaultValue,
             type: type,
-            options: options
+            options: options,
+            group: group
         )
         entries.append(entry)
+    }
+
+    public var groups: [String] {
+        Array(Set(entries.map(\.group))).sorted()
+    }
+
+    public func entries(for group: String) -> [PhantomConfigEntry] {
+        entries.filter { $0.group == group }
     }
 
     // MARK: - Read / Write

@@ -35,6 +35,38 @@ struct PhantomDemoApp: App {
             type: .toggle
         )
 
+        Phantom.registerConfig(
+            "Cache TTL (seconds)",
+            key: "cache_ttl",
+            defaultValue: "300",
+            group: "Performance"
+        )
+        Phantom.registerConfig(
+            "Enable Prefetch",
+            key: "prefetch_enabled",
+            defaultValue: "true",
+            type: .toggle,
+            group: "Performance"
+        )
+
+        Phantom.registerConfig(
+            "Log Level",
+            key: "log_level",
+            defaultValue: "info",
+            type: .picker,
+            options: ["debug", "info", "warning", "error"],
+            group: "Debug"
+        )
+        Phantom.registerConfig(
+            "Show Network Overlay",
+            key: "network_overlay",
+            defaultValue: "false",
+            type: .toggle,
+            group: "Debug"
+        )
+
+        seedLocalization()
+
         Phantom.log(.info, "App launched", tag: "Lifecycle")
         Phantom.log(.info, "User session restored", tag: "Auth")
         Phantom.log(.warning, "Token expires in 5 minutes", tag: "Auth")
@@ -42,6 +74,23 @@ struct PhantomDemoApp: App {
         Phantom.log(.info, "Home screen loaded", tag: "Navigation")
 
         seedNetworkLogs()
+    }
+
+    private func seedLocalization() {
+        Phantom.registerLocalization(key: "welcome", english: "Welcome", spanish: "Bienvenido")
+        Phantom.registerLocalization(key: "logout", english: "Log Out", spanish: "Cerrar Sesión")
+        Phantom.registerLocalization(key: "settings", english: "Settings", spanish: "Configuración")
+
+        Phantom.registerLocalization(key: "login_title", english: "Log In", spanish: "Iniciar Sesión", group: "Auth")
+        Phantom.registerLocalization(key: "forgot_password", english: "Forgot Password?", spanish: "¿Olvidaste tu contraseña?", group: "Auth")
+        Phantom.registerLocalization(key: "register", english: "Create Account", spanish: "Crear Cuenta", group: "Auth")
+
+        Phantom.registerLocalization(key: "home_title", english: "Home", spanish: "Inicio", group: "Navigation")
+        Phantom.registerLocalization(key: "profile_title", english: "Profile", spanish: "Perfil", group: "Navigation")
+        Phantom.registerLocalization(key: "search_placeholder", english: "Search...", spanish: "Buscar...", group: "Navigation")
+
+        Phantom.registerLocalization(key: "network_error", english: "Connection failed. Try again.", spanish: "Conexión fallida. Intenta de nuevo.", group: "Errors")
+        Phantom.registerLocalization(key: "empty_state", english: "No results found", spanish: "No se encontraron resultados", group: "Errors")
     }
 
     private func seedNetworkLogs() {
