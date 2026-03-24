@@ -3,22 +3,22 @@ import SwiftUI
 struct PhantomConfigView: View {
 
     @Environment(\.phantomTheme) private var theme
-    @ObservedObject private var config = PhantomConfig.shared
+    @StateObject private var viewModel = PhantomConfigViewModel()
 
     var body: some View {
         ZStack {
             theme.background.ignoresSafeArea()
-            if config.entries.isEmpty {
-                emptyState()
-            } else {
+            if viewModel.hasEntries {
                 configList()
+            } else {
+                emptyState()
             }
         }
         .navigationTitle("Configuration")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { PhantomConfig.shared.resetAll() }) {
+                Button(action: { viewModel.resetAll() }) {
                     Text("Reset All")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(theme.error)
@@ -48,7 +48,7 @@ struct PhantomConfigView: View {
     private func configList() -> some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                ForEach(config.entries) { entry in
+                ForEach(viewModel.entries) { entry in
                     configRow(entry)
                         .padding(16)
                         .background(RoundedRectangle(cornerRadius: 12).fill(theme.surface))
@@ -61,8 +61,8 @@ struct PhantomConfigView: View {
 
     @ViewBuilder
     private func configRow(_ entry: PhantomConfigEntry) -> some View {
-        let effectiveValue = PhantomConfig.shared.effectiveValue(for: entry.key) ?? entry.defaultValue
-        let isOverridden = PhantomConfig.shared.value(for: entry.key) != nil
+        let effectiveValue = viewModel.effectiveValue(for: entry.key, defaultValue: entry.defaultValue)
+        let isOverridden = viewModel.isOverridden(entry.key)
 
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -105,7 +105,7 @@ struct PhantomConfigView: View {
                 textEditor(entry)
             }
             if isOverridden {
-                Button(action: { PhantomConfig.shared.resetValue(for: entry.key) }) {
+                Button(action: { viewModel.resetValue(for: entry.key) }) {
                     Text("Reset to Default")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(theme.error)
@@ -125,7 +125,7 @@ struct PhantomConfigView: View {
 
     @ViewBuilder
     private func textEditor(_ entry: PhantomConfigEntry) -> some View {
-        let currentValue = PhantomConfig.shared.value(for: entry.key) ?? ""
+        let currentValue = viewModel.value(for: entry.key) ?? ""
         ZStack(alignment: .leading) {
             if currentValue.isEmpty {
                 Text(entry.defaultValue)
@@ -135,7 +135,7 @@ struct PhantomConfigView: View {
             }
             TextField("", text: Binding(
                 get: { currentValue },
-                set: { PhantomConfig.shared.setValue($0, for: entry.key) }
+                set: { viewModel.setValue($0, for: entry.key) }
             ))
             .font(.system(size: 13, design: .monospaced))
             .foregroundStyle(theme.onBackground)
@@ -150,10 +150,9 @@ struct PhantomConfigView: View {
 
     @ViewBuilder
     private func toggleEditor(_ entry: PhantomConfigEntry) -> some View {
-        let isOn = (PhantomConfig.shared.effectiveValue(for: entry.key) ?? "false") == "true"
         Toggle("Enabled", isOn: Binding(
-            get: { isOn },
-            set: { PhantomConfig.shared.setValue($0 ? "true" : "false", for: entry.key) }
+            get: { viewModel.toggleValue(for: entry.key) },
+            set: { viewModel.setToggle($0, for: entry.key) }
         ))
         .font(.system(size: 14))
         .foregroundStyle(theme.onBackground)
@@ -162,10 +161,10 @@ struct PhantomConfigView: View {
 
     @ViewBuilder
     private func pickerEditor(_ entry: PhantomConfigEntry) -> some View {
-        let currentValue = PhantomConfig.shared.effectiveValue(for: entry.key) ?? entry.defaultValue
+        let currentValue = viewModel.effectiveValue(for: entry.key, defaultValue: entry.defaultValue)
         Picker(entry.label, selection: Binding(
             get: { currentValue },
-            set: { PhantomConfig.shared.setValue($0, for: entry.key) }
+            set: { viewModel.setValue($0, for: entry.key) }
         )) {
             ForEach(entry.options, id: \.self) { option in
                 Text(option).tag(option)

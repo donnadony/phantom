@@ -19,6 +19,7 @@ public struct PhantomView: View {
                         phantomRow("Network", icon: "network", destination: PhantomNetworkView())
                         phantomRow("Mock Services", icon: "antenna.radiowaves.left.and.right", destination: PhantomMockListView())
                         phantomRow("Configuration", icon: "gearshape", destination: PhantomConfigView())
+                        phantomRow("Localization", icon: "globe", destination: PhantomLocalizationView())
                     }
                 }
             }

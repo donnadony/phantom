@@ -3,40 +3,36 @@ import SwiftUI
 struct PhantomMockListView: View {
 
     @Environment(\.phantomTheme) private var theme
-    @ObservedObject private var interceptor = PhantomMockInterceptor.shared
-    @State private var editingRule: PhantomMockRule?
-    @State private var showAddSheet = false
+    @StateObject private var viewModel = PhantomMockListViewModel()
 
     var body: some View {
         ZStack {
             theme.background.ignoresSafeArea()
-            if interceptor.rules.isEmpty {
-                emptyState()
-            } else {
+            if viewModel.hasRules {
                 ruleList()
+            } else {
+                emptyState()
             }
         }
         .navigationTitle("Mock Services")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showAddSheet = true }) {
+                Button(action: { viewModel.showAddSheet = true }) {
                     Image(systemName: "plus")
                         .foregroundColor(theme.primary)
                 }
             }
         }
-        .sheet(isPresented: $showAddSheet) {
+        .sheet(isPresented: $viewModel.showAddSheet) {
             PhantomMockEditView(onSave: { rule in
-                interceptor.addRule(rule)
-                showAddSheet = false
+                viewModel.addRule(rule)
             })
             .environment(\.phantomTheme, theme)
         }
-        .sheet(item: $editingRule) { rule in
+        .sheet(item: $viewModel.editingRule) { rule in
             PhantomMockEditView(existingRule: rule, onSave: { updated in
-                interceptor.updateRule(updated)
-                editingRule = nil
+                viewModel.updateRule(updated)
             })
             .environment(\.phantomTheme, theme)
         }
@@ -62,14 +58,12 @@ struct PhantomMockListView: View {
     @ViewBuilder
     private func ruleList() -> some View {
         List {
-            ForEach(interceptor.rules) { rule in
+            ForEach(viewModel.rules) { rule in
                 ruleRow(rule)
                     .contentShape(Rectangle())
-                    .onTapGesture { editingRule = rule }
+                    .onTapGesture { viewModel.editingRule = rule }
             }
-            .onDelete { indexSet in
-                indexSet.forEach { interceptor.deleteRule(id: interceptor.rules[$0].id) }
-            }
+            .onDelete { viewModel.deleteRule(at: $0) }
             .listRowBackground(theme.background)
         }
         .listStyle(.plain)
@@ -89,7 +83,7 @@ struct PhantomMockListView: View {
                         .foregroundStyle(theme.onPrimary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 4).fill(methodColor(rule.httpMethod)))
+                        .background(RoundedRectangle(cornerRadius: 4).fill(viewModel.methodColor(rule.httpMethod, theme: theme)))
                     Text(rule.urlPattern)
                         .font(.system(size: 12))
                         .foregroundStyle(theme.onBackgroundVariant)
@@ -102,7 +96,7 @@ struct PhantomMockListView: View {
                             .foregroundStyle(theme.primary)
                         Text("\(active.name) (\(active.statusCode))")
                             .font(.system(size: 12))
-                            .foregroundStyle(statusColor(active.statusCode))
+                            .foregroundStyle(viewModel.statusColor(active.statusCode, theme: theme))
                     }
                 }
                 Text("\(rule.responses.count) response\(rule.responses.count == 1 ? "" : "s")")
@@ -112,27 +106,10 @@ struct PhantomMockListView: View {
             Spacer()
             Toggle("", isOn: Binding(
                 get: { rule.isEnabled },
-                set: { _ in interceptor.toggleRule(id: rule.id) }
+                set: { _ in viewModel.toggleRule(id: rule.id) }
             ))
             .labelsHidden()
         }
         .padding(.vertical, 4)
-    }
-
-    private func methodColor(_ method: String) -> Color {
-        switch method {
-        case "GET": return theme.httpGet
-        case "POST": return theme.httpPost
-        case "PUT": return theme.httpPut
-        case "DELETE": return theme.httpDelete
-        default: return theme.onBackgroundVariant
-        }
-    }
-
-    private func statusColor(_ code: Int) -> Color {
-        if (200..<300).contains(code) { return theme.success }
-        if (400..<500).contains(code) { return theme.warning }
-        if code >= 500 { return theme.error }
-        return theme.onBackgroundVariant
     }
 }

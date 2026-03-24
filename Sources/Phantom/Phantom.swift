@@ -81,6 +81,29 @@ public enum Phantom {
         PhantomConfig.shared.setValue(value, for: key)
     }
 
+    // MARK: - Localization
+
+    public static func registerLocalization(
+        key: String,
+        english: String,
+        spanish: String,
+        group: String = "General"
+    ) {
+        PhantomLocalizer.shared.register(key: key, english: english, spanish: spanish, group: group)
+    }
+
+    public static func localized(_ key: String, group: String? = nil) -> String {
+        PhantomLocalizer.shared.localized(key, group: group)
+    }
+
+    public static func setLanguage(_ language: PhantomLanguage) {
+        PhantomLocalizer.shared.setLanguage(language)
+    }
+
+    public static var currentLanguage: PhantomLanguage {
+        PhantomLocalizer.shared.currentLanguage
+    }
+
     // MARK: - Presentation
 
     public static func view() -> some View {

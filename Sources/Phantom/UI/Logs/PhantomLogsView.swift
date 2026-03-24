@@ -3,29 +3,13 @@ import SwiftUI
 struct PhantomLogsView: View {
 
     @Environment(\.phantomTheme) private var theme
-    @ObservedObject private var logger = PhantomLogger.shared
-    @State private var searchText: String = ""
-    @State private var selectedLevel: PhantomLogLevel? = nil
-
-    private var filteredEvents: [PhantomLogItem] {
-        var list = logger.events
-        if let level = selectedLevel {
-            list = list.filter { $0.level == level }
-        }
-        guard !searchText.isEmpty else { return list }
-        return list.filter { item in
-            let msg = item.message.lowercased()
-            let tag = (item.tag ?? "").lowercased()
-            let query = searchText.lowercased()
-            return msg.contains(query) || tag.contains(query)
-        }
-    }
+    @StateObject private var viewModel = PhantomLogsViewModel()
 
     var body: some View {
         VStack(spacing: 0) {
             searchBar()
             filterBar()
-            if filteredEvents.isEmpty {
+            if viewModel.filteredEvents.isEmpty {
                 Spacer()
                 Text("No events yet.")
                     .font(.system(size: 14))
@@ -34,7 +18,7 @@ struct PhantomLogsView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(filteredEvents) { item in
+                        ForEach(viewModel.filteredEvents) { item in
                             logEventRow(item)
                         }
                     }
@@ -44,11 +28,11 @@ struct PhantomLogsView: View {
             }
         }
         .background(theme.background.ignoresSafeArea())
-        .navigationTitle("Logs (\(logger.events.count))")
+        .navigationTitle("Logs (\(viewModel.totalCount))")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { PhantomLogger.shared.clearAll() }) {
+                Button(action: { viewModel.clearAll() }) {
                     Text("Clear")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(theme.error)
@@ -62,7 +46,7 @@ struct PhantomLogsView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(theme.onBackgroundVariant)
-            TextField("Search by message or tag...", text: $searchText)
+            TextField("Search by message or tag...", text: $viewModel.searchText)
                 .font(.system(size: 14))
                 .foregroundStyle(theme.onBackground)
                 .disableAutocorrection(true)
@@ -88,21 +72,22 @@ struct PhantomLogsView: View {
     }
 
     private func filterButton(_ level: PhantomLogLevel?, label: String) -> some View {
-        Button(action: { selectedLevel = level }) {
+        Button(action: { viewModel.selectLevel(level) }) {
             Text(label)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(selectedLevel == level ? theme.onPrimary : theme.onBackground)
+                .foregroundStyle(viewModel.selectedLevel == level ? theme.onPrimary : theme.onBackground)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(selectedLevel == level ? theme.primary : theme.surface)
+                        .fill(viewModel.selectedLevel == level ? theme.primary : theme.surface)
                 )
         }
     }
 
     private func logEventRow(_ item: PhantomLogItem) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        let color = viewModel.levelColor(item.level, theme: theme)
+        return HStack(alignment: .top, spacing: 10) {
             Text(item.level.emoji)
                 .font(.system(size: 14))
                 .padding(.top, 2)
@@ -110,12 +95,12 @@ struct PhantomLogsView: View {
                 HStack(spacing: 6) {
                     Text(item.level.rawValue)
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(levelColor(item.level))
+                        .foregroundStyle(color)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
                         .background(
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(levelColor(item.level).opacity(0.15))
+                                .fill(color.opacity(0.15))
                         )
                     if let tag = item.tag {
                         Text(tag)
@@ -126,7 +111,7 @@ struct PhantomLogsView: View {
                 Text(item.message)
                     .font(.system(size: 12))
                     .foregroundStyle(theme.onBackground)
-                Text(timeText(item.createdAt))
+                Text(viewModel.timeText(item.createdAt))
                     .font(.system(size: 12))
                     .foregroundStyle(theme.onBackgroundVariant)
             }
@@ -134,21 +119,6 @@ struct PhantomLogsView: View {
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 10).fill(theme.surface))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(levelColor(item.level).opacity(0.3), lineWidth: 1))
-    }
-
-    private func levelColor(_ level: PhantomLogLevel) -> Color {
-        switch level {
-        case .info: return theme.info
-        case .warning: return theme.warning
-        case .error: return theme.error
-        }
-    }
-
-    private func timeText(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = .current
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: date)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.3), lineWidth: 1))
     }
 }

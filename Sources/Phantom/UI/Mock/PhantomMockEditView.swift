@@ -4,45 +4,21 @@ struct PhantomMockEditView: View {
 
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.phantomTheme) private var theme
-    @State private var ruleDescription: String
-    @State private var urlPattern: String
-    @State private var httpMethod: String
-    @State private var responses: [PhantomMockResponse]
-    @State private var activeResponseId: UUID?
-    @State private var responseEditorItem: ResponseEditorItem?
-    @State private var inlineStatusCode: String
-    @State private var inlineResponseBody: String
+    @StateObject private var viewModel: PhantomMockEditViewModel
 
-    private let existingRule: PhantomMockRule?
     private let onSave: (PhantomMockRule) -> Void
-    private let httpMethods = ["ANY", "GET", "POST", "PUT", "DELETE"]
 
     init(existingRule: PhantomMockRule? = nil, onSave: @escaping (PhantomMockRule) -> Void) {
-        self.existingRule = existingRule
+        _viewModel = StateObject(wrappedValue: PhantomMockEditViewModel(existingRule: existingRule))
         self.onSave = onSave
-        _ruleDescription = State(initialValue: existingRule?.ruleDescription ?? "")
-        _urlPattern = State(initialValue: existingRule?.urlPattern ?? "")
-        _httpMethod = State(initialValue: existingRule?.httpMethod ?? "ANY")
-        let initialResponses = existingRule?.responses ?? []
-        _responses = State(initialValue: initialResponses)
-        _activeResponseId = State(initialValue: existingRule?.activeResponseId)
-        let firstResponse = existingRule?.activeResponse ?? initialResponses.first
-        _inlineStatusCode = State(initialValue: firstResponse.map { String($0.statusCode) } ?? "200")
-        _inlineResponseBody = State(initialValue: firstResponse?.responseBody ?? "{\n  \n}")
-    }
-
-    private var isValid: Bool {
-        !ruleDescription.trimmingCharacters(in: .whitespaces).isEmpty
-        && !urlPattern.trimmingCharacters(in: .whitespaces).isEmpty
-        && (responses.count > 1 || Int(inlineStatusCode) != nil)
     }
 
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    fieldSection("Description", text: $ruleDescription, placeholder: "e.g. Empty response")
-                    fieldSection("URL Pattern (partial match)", text: $urlPattern, placeholder: "e.g. /v1/users")
+                    fieldSection("Description", text: $viewModel.ruleDescription, placeholder: "e.g. Empty response")
+                    fieldSection("URL Pattern (partial match)", text: $viewModel.urlPattern, placeholder: "e.g. /v1/users")
                     methodPicker()
                     responsesSection()
                     deleteButton()
@@ -50,7 +26,7 @@ struct PhantomMockEditView: View {
                 .padding(16)
             }
             .background(theme.background.ignoresSafeArea())
-            .navigationTitle(existingRule == nil ? "New Mock Rule" : "Edit Mock Rule")
+            .navigationTitle(viewModel.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -61,25 +37,15 @@ struct PhantomMockEditView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") { saveRule() }
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(isValid ? theme.primary : theme.onBackgroundVariant)
-                        .disabled(!isValid)
+                        .foregroundStyle(viewModel.isValid ? theme.primary : theme.onBackgroundVariant)
+                        .disabled(!viewModel.isValid)
                 }
             }
-            .sheet(item: $responseEditorItem) { item in
+            .sheet(item: $viewModel.responseEditorItem) { item in
                 PhantomMockResponseEditView(
                     existingResponse: item.response,
-                    responseIndex: item.response.flatMap { resp in responses.firstIndex(where: { $0.id == resp.id }).map { $0 + 1 } } ?? (responses.count + 1),
-                    onSave: { response in
-                        if let index = responses.firstIndex(where: { $0.id == response.id }) {
-                            responses[index] = response
-                        } else {
-                            responses.append(response)
-                            if responses.count == 1 {
-                                activeResponseId = response.id
-                            }
-                        }
-                        responseEditorItem = nil
-                    }
+                    responseIndex: item.response.flatMap { viewModel.responseIndex(for: $0) } ?? (viewModel.responses.count + 1),
+                    onSave: { viewModel.handleResponseSave($0) }
                 )
                 .environment(\.phantomTheme, theme)
             }
@@ -109,16 +75,16 @@ struct PhantomMockEditView: View {
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(theme.onBackground)
             HStack(spacing: 8) {
-                ForEach(httpMethods, id: \.self) { method in
-                    Button(action: { httpMethod = method }) {
+                ForEach(viewModel.httpMethods, id: \.self) { method in
+                    Button(action: { viewModel.selectMethod(method) }) {
                         Text(method)
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(httpMethod == method ? theme.onPrimary : theme.onBackground)
+                            .foregroundStyle(viewModel.httpMethod == method ? theme.onPrimary : theme.onBackground)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(httpMethod == method ? theme.primary : theme.surface)
+                                    .fill(viewModel.httpMethod == method ? theme.primary : theme.surface)
                             )
                     }
                 }
@@ -128,22 +94,19 @@ struct PhantomMockEditView: View {
 
     @ViewBuilder
     private func responsesSection() -> some View {
-        if responses.count <= 1 {
-            inlineResponseEditor()
-        } else {
+        if viewModel.hasMultipleResponses {
             multiResponseList()
+        } else {
+            inlineResponseEditor()
         }
     }
 
     @ViewBuilder
     private func inlineResponseEditor() -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            fieldSection("Status Code", text: $inlineStatusCode, placeholder: "200", keyboard: .numberPad)
+            fieldSection("Status Code", text: $viewModel.inlineStatusCode, placeholder: "200", keyboard: .numberPad)
             inlineBodyEditor()
-            Button(action: {
-                syncInlineToResponses()
-                responseEditorItem = .add
-            }) {
+            Button(action: { viewModel.addResponse() }) {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
                     Text("Add another response")
@@ -162,22 +125,18 @@ struct PhantomMockEditView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.onBackground)
                 Spacer()
-                Button(action: {
-                    guard let content = UIPasteboard.general.string else { return }
-                    inlineResponseBody = content
-                    formatInlineJson()
-                }) {
+                Button(action: { viewModel.pasteInlineBody() }) {
                     Text("Paste")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(theme.primary)
                 }
-                Button(action: formatInlineJson) {
+                Button(action: { viewModel.formatInlineJson() }) {
                     Text("Format")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(theme.primary)
                 }
             }
-            PhantomThemedTextEditor(text: $inlineResponseBody)
+            PhantomThemedTextEditor(text: $viewModel.inlineResponseBody)
         }
     }
 
@@ -185,13 +144,11 @@ struct PhantomMockEditView: View {
     private func multiResponseList() -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Responses (\(responses.count))")
+                Text("Responses (\(viewModel.responses.count))")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(theme.onBackground)
                 Spacer()
-                Button(action: {
-                    responseEditorItem = .add
-                }) {
+                Button(action: { viewModel.responseEditorItem = .add }) {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
                         Text("Add")
@@ -200,7 +157,7 @@ struct PhantomMockEditView: View {
                     .foregroundStyle(theme.primary)
                 }
             }
-            ForEach(responses) { response in
+            ForEach(viewModel.responses) { response in
                 responseRow(response)
             }
         }
@@ -208,9 +165,9 @@ struct PhantomMockEditView: View {
 
     @ViewBuilder
     private func responseRow(_ response: PhantomMockResponse) -> some View {
-        let isActive = (activeResponseId == response.id) || (activeResponseId == nil && responses.first?.id == response.id)
+        let isActive = viewModel.isActiveResponse(response)
         HStack(spacing: 10) {
-            Button(action: { activeResponseId = response.id }) {
+            Button(action: { viewModel.setActiveResponse(response.id) }) {
                 Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(isActive ? theme.primary : theme.onBackgroundVariant)
                     .font(.system(size: 20))
@@ -232,22 +189,15 @@ struct PhantomMockEditView: View {
                 }
                 Text("Status: \(response.statusCode)")
                     .font(.system(size: 12))
-                    .foregroundStyle(statusColor(response.statusCode))
+                    .foregroundStyle(viewModel.statusColor(response.statusCode, theme: theme))
             }
             Spacer()
-            Button(action: {
-                responseEditorItem = .edit(response)
-            }) {
+            Button(action: { viewModel.editResponse(response) }) {
                 Image(systemName: "pencil")
                     .foregroundStyle(theme.primary)
                     .font(.system(size: 14))
             }
-            Button(action: {
-                responses.removeAll { $0.id == response.id }
-                if activeResponseId == response.id {
-                    activeResponseId = responses.first?.id
-                }
-            }) {
+            Button(action: { viewModel.deleteResponse(response) }) {
                 Image(systemName: "trash")
                     .foregroundStyle(theme.error)
                     .font(.system(size: 14))
@@ -260,11 +210,9 @@ struct PhantomMockEditView: View {
 
     @ViewBuilder
     private func deleteButton() -> some View {
-        if existingRule != nil {
+        if viewModel.isEditing {
             Button(action: {
-                if let id = existingRule?.id {
-                    PhantomMockInterceptor.shared.deleteRule(id: id)
-                }
+                viewModel.deleteExistingRule()
                 presentationMode.wrappedValue.dismiss()
             }) {
                 Text("Delete Rule")
@@ -277,58 +225,9 @@ struct PhantomMockEditView: View {
         }
     }
 
-    private func syncInlineToResponses() {
-        if responses.isEmpty {
-            let newResponse = PhantomMockResponse(
-                id: UUID(),
-                name: "Response 1",
-                statusCode: Int(inlineStatusCode) ?? 200,
-                responseBody: inlineResponseBody
-            )
-            responses.append(newResponse)
-            activeResponseId = newResponse.id
-        } else if responses.count == 1 {
-            responses[0] = PhantomMockResponse(
-                id: responses[0].id,
-                name: responses[0].name,
-                statusCode: Int(inlineStatusCode) ?? 200,
-                responseBody: inlineResponseBody
-            )
-            activeResponseId = responses[0].id
-        }
-    }
-
-    private func formatInlineJson() {
-        guard let data = inlineResponseBody.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data),
-              let formatted = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]),
-              let string = String(data: formatted, encoding: .utf8) else { return }
-        inlineResponseBody = string
-    }
-
     private func saveRule() {
-        guard isValid else { return }
-        if responses.count <= 1 {
-            syncInlineToResponses()
-        }
-        let rule = PhantomMockRule(
-            id: existingRule?.id ?? UUID(),
-            isEnabled: existingRule?.isEnabled ?? true,
-            urlPattern: urlPattern.trimmingCharacters(in: .whitespaces),
-            httpMethod: httpMethod,
-            responses: responses,
-            activeResponseId: activeResponseId ?? responses.first?.id,
-            ruleDescription: ruleDescription.trimmingCharacters(in: .whitespaces),
-            createdAt: existingRule?.createdAt ?? Date()
-        )
+        guard let rule = viewModel.buildRule() else { return }
         onSave(rule)
-    }
-
-    private func statusColor(_ code: Int) -> Color {
-        if (200..<300).contains(code) { return theme.success }
-        if (400..<500).contains(code) { return theme.warning }
-        if code >= 500 { return theme.error }
-        return theme.onBackgroundVariant
     }
 }
 
@@ -470,7 +369,7 @@ struct ResponseEditorItem: Identifiable {
 
 // MARK: - Themed TextEditor
 
-private struct PhantomThemedTextEditor: View {
+struct PhantomThemedTextEditor: View {
 
     @Binding var text: String
     @Environment(\.phantomTheme) private var theme
