@@ -1,0 +1,25 @@
+name: PhantomDemoApp
+options:
+  bundleIdPrefix: com.phantom
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "16.0"
+packages:
+  Phantom:
+    path: ../../
+targets:
+  PhantomDemoApp:
+    type: application
+    platform: iOS
+    sources:
+      - PhantomDemoApp
+    dependencies:
+      - package: Phantom
+    settings:
+      base:
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_CFBundleDisplayName: PhantomDemo
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: "NO"
