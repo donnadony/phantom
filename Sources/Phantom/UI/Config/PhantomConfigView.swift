@@ -138,7 +138,7 @@ struct PhantomConfigView: View {
         .disableAutocorrection(true)
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
-        .background(RoundedRectangle(cornerRadius: 8).fill(theme.surface))
+        .background(RoundedRectangle(cornerRadius: 8).fill(theme.inputBackground))
     }
 
     @ViewBuilder
@@ -149,6 +149,8 @@ struct PhantomConfigView: View {
             set: { PhantomConfig.shared.setValue($0 ? "true" : "false", for: entry.key) }
         ))
         .font(.system(size: 14))
+        .foregroundStyle(theme.onBackground)
+        .tint(theme.tint)
     }
 
     @ViewBuilder
@@ -163,6 +165,7 @@ struct PhantomConfigView: View {
             }
         }
         .pickerStyle(.segmented)
+        .tint(theme.tint)
     }
 }
 
