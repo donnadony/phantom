@@ -6,6 +6,19 @@ Cross-platform debug toolkit for mobile apps.
 [![Swift](https://img.shields.io/badge/Swift-5.9%2B-orange)](phantom-ios/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
+## Screenshots
+
+<p align="center">
+  <img src="Screenshots/home.jpeg" width="200" />
+  <img src="Screenshots/logs.jpeg" width="200" />
+  <img src="Screenshots/network.jpeg" width="200" />
+</p>
+<p align="center">
+  <img src="Screenshots/mock_list.jpeg" width="200" />
+  <img src="Screenshots/mock_new.jpeg" width="200" />
+  <img src="Screenshots/mock_edit.jpeg" width="200" />
+</p>
+
 ## Features
 
 - **Logs** - App-level logging with levels (info, warning, error) and tag filtering
