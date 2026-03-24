@@ -1,5 +1,3 @@
-#if DEBUG
-
 import SwiftUI
 
 struct PhantomNetworkView: View {
@@ -454,5 +452,3 @@ struct PhantomNetworkView: View {
         )
     }
 }
-
-#endif

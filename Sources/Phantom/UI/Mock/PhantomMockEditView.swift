@@ -1,5 +1,3 @@
-#if DEBUG
-
 import SwiftUI
 
 struct PhantomMockEditView: View {
@@ -480,5 +478,3 @@ private extension View {
         }
     }
 }
-
-#endif

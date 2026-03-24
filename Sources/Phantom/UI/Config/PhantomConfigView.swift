@@ -1,5 +1,3 @@
-#if DEBUG
-
 import SwiftUI
 
 struct PhantomConfigView: View {
@@ -176,5 +174,3 @@ struct PhantomConfigView: View {
         .pickerStyle(.segmented)
     }
 }
-
-#endif

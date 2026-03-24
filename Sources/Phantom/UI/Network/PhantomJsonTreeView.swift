@@ -1,5 +1,3 @@
-#if DEBUG
-
 import SwiftUI
 
 struct PhantomJsonTreeView: View {
@@ -169,5 +167,3 @@ private struct PhantomJsonNodeView: View {
         return .stringValue("\(value)")
     }
 }
-
-#endif

@@ -1,5 +1,3 @@
-#if DEBUG
-
 import SwiftUI
 
 public struct PhantomView: View {
@@ -86,5 +84,3 @@ public struct PhantomView: View {
         Divider().overlay(theme.outlineVariant)
     }
 }
-
-#endif

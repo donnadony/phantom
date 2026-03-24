@@ -1,5 +1,3 @@
-#if DEBUG
-
 import SwiftUI
 
 struct PhantomMockListView: View {
@@ -138,5 +136,3 @@ struct PhantomMockListView: View {
         return theme.onBackgroundVariant
     }
 }
-
-#endif

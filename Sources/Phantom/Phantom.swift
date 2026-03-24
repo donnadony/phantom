@@ -83,10 +83,8 @@ public enum Phantom {
 
     // MARK: - Presentation
 
-    #if DEBUG
     public static func view() -> some View {
         PhantomView()
             .environment(\.phantomTheme, theme)
     }
-    #endif
 }

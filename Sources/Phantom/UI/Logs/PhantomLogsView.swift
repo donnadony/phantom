@@ -1,5 +1,3 @@
-#if DEBUG
-
 import SwiftUI
 
 struct PhantomLogsView: View {
@@ -154,5 +152,3 @@ struct PhantomLogsView: View {
         return formatter.string(from: date)
     }
 }
-
-#endif
