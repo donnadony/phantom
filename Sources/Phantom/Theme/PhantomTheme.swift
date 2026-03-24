@@ -38,6 +38,11 @@ public struct PhantomTheme {
     public var httpPut: Color
     public var httpDelete: Color
 
+    // MARK: - Interactive
+
+    public var tint: Color
+    public var inputBackground: Color
+
     // MARK: - JSON Tree
 
     public var jsonString: Color
@@ -62,6 +67,8 @@ public struct PhantomTheme {
         success: Color(hex: "#5de6ff"),
         outline: Color(hex: "#958ea0"),
         outlineVariant: Color(hex: "#494454"),
+        tint: Color(hex: "#a078ff"),
+        inputBackground: Color(hex: "#0f1829"),
         httpGet: Color(hex: "#5de6ff"),
         httpPost: Color(hex: "#d0bcff"),
         httpPut: Color(hex: "#ffb869"),
@@ -89,6 +96,8 @@ public struct PhantomTheme {
         success: Color = Color(hex: "#5de6ff"),
         outline: Color = Color(hex: "#958ea0"),
         outlineVariant: Color = Color(hex: "#494454"),
+        tint: Color = Color(hex: "#a078ff"),
+        inputBackground: Color = Color(hex: "#0f1829"),
         httpGet: Color = Color(hex: "#5de6ff"),
         httpPost: Color = Color(hex: "#d0bcff"),
         httpPut: Color = Color(hex: "#ffb869"),
@@ -112,6 +121,8 @@ public struct PhantomTheme {
         self.success = success
         self.outline = outline
         self.outlineVariant = outlineVariant
+        self.tint = tint
+        self.inputBackground = inputBackground
         self.httpGet = httpGet
         self.httpPost = httpPost
         self.httpPut = httpPut

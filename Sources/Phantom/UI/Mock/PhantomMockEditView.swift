@@ -182,13 +182,7 @@ struct PhantomMockEditView: View {
                         .foregroundStyle(theme.primary)
                 }
             }
-            TextEditor(text: $inlineResponseBody)
-                .font(.system(size: 12, weight: .regular, design: .monospaced))
-                .foregroundStyle(theme.onBackground)
-                .frame(minHeight: 200)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(theme.surface))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.outlineVariant, lineWidth: 1))
+            PhantomThemedTextEditor(text: $inlineResponseBody)
         }
     }
 
@@ -426,13 +420,7 @@ struct PhantomMockResponseEditView: View {
                         .foregroundStyle(theme.primary)
                 }
             }
-            TextEditor(text: $responseBody)
-                .font(.system(size: 12, weight: .regular, design: .monospaced))
-                .foregroundStyle(theme.onBackground)
-                .frame(minHeight: 200)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 8).fill(theme.surface))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.outlineVariant, lineWidth: 1))
+            PhantomThemedTextEditor(text: $responseBody)
         }
     }
 
@@ -459,6 +447,37 @@ struct PhantomMockResponseEditView: View {
               let formatted = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]),
               let string = String(data: formatted, encoding: .utf8) else { return }
         responseBody = string
+    }
+}
+
+// MARK: - Themed TextEditor
+
+private struct PhantomThemedTextEditor: View {
+
+    @Binding var text: String
+    @Environment(\.phantomTheme) private var theme
+
+    var body: some View {
+        TextEditor(text: $text)
+            .font(.system(size: 12, weight: .regular, design: .monospaced))
+            .foregroundStyle(theme.onBackground)
+            .phantomHideScrollBackground()
+            .frame(minHeight: 200)
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 8).fill(theme.inputBackground))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(theme.outlineVariant, lineWidth: 1))
+    }
+}
+
+private extension View {
+
+    @ViewBuilder
+    func phantomHideScrollBackground() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollContentBackground(.hidden)
+        } else {
+            self.onAppear { UITextView.appearance().backgroundColor = .clear }
+        }
     }
 }
 
